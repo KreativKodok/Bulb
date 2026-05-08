@@ -14,7 +14,10 @@ With it you can:
 - ✏️ edit files in the default editor
 - ⚡ execute programs
 
-## Downloading it
+## Try it!
+You can check it out in action on [Tulip Web](https://share.tulip.computer/G82i1p)
+
+## Download it!
 Download it from Tulip World with the following command:
 ```
 world.download('bulb', 'kreativkodok')
@@ -24,13 +27,13 @@ Or you can download it from this repo:
 2. Install `mpremote` using [this guide](https://github.com/shorepine/tulipcc/blob/main/docs/getting_started.md#using-mpremote)
 3. *(Windows only)* From the downloaded files, drag `bulb.py` onto `tulip_mpremote.bat`
 
-## Launching it
+## Launch it!
 Insert the following in your `boot.py` or run it from REPL:
 ```
 run('bulb')
 ```
 
-## Using it
+## Use it!
 - Use the top row to navigate the directory tree
 
 
