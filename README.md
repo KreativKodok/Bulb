@@ -15,7 +15,11 @@ With it you can:
 - ⚡ execute programs
 
 ## Try it!
-You can check it out in action on [Tulip Web](https://share.tulip.computer/G82i1p)
+You can check it out in action on [Tulip Web](https://share.tulip.computer/xhIQ9W).
+Just type this command into the REPL and hit Enter:
+```
+run('bulb.py')
+```
 
 ## Download it!
 Download it from Tulip World with the following command:
