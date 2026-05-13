@@ -1,5 +1,5 @@
+#Bulb is a simple file explorer for your Tulip Creative Computer!
 """
-Bulb is a simple file explorer for your Tulip Creative Computer!
 Find the latest version at https://github.com/KreativKodok/Bulb/
 Low effort by Laszlo Andras Halak (kreativkodok)
 
@@ -11,6 +11,11 @@ import ui
 import upysh
 import tulip
 import lvgl as lv
+
+if "WEB" in tulip.board():
+    import world_web as world
+else:
+    import world as world
 
 DIRECTORY = 0x4000
 FILE = 0x8000
@@ -29,11 +34,15 @@ theme_color = lv.PALETTE.TEAL
 window_header_text = "Bulb File Explorer v0.1"
 
 template_app = """
+#describe your app here
+
 import os
 import upysh
 import tulip
 import math
+import random
 
+import music
 import midi
 import synth
 import sequencer
@@ -44,6 +53,7 @@ import lvgl as lv
 
 
 app = None
+window = none
 
 
 
@@ -66,11 +76,7 @@ def run(screen):
     app.deactivate_callback = deactivate;
     app.handle_keyboard=True
     
-    
-    
-    
-    
-    
+    window = app.group
     
     
     
@@ -157,8 +163,13 @@ def execute_cb(event):
     tulip.run(selected_entity.rpartition('/')[2])
 
 def edit_cb(event):
-    if os.stat(selected_entity)[0] & DIRECTORY != DIRECTORY:
-        tulip.edit(selected_entity)
+    if os.stat(selected_entity)[0] & DIRECTORY:
+        return
+    
+    if 'edit' in tulip.running_apps:
+        return
+    
+    tulip.edit(selected_entity)
         
         
 def copy_recursive(source, to):
@@ -237,9 +248,11 @@ def open_dir_cb(event, target):
     
 def edit_file_cb(event, target):
     tulip.edit(os.getcwd() + '/' + target.get_child(0).get_text())
+    deactivate(origin)
     
 def run_file_cb(event, target):
-    tulip.run(target.get_child(0).get_text())
+    tulip.run(os.getcwd() + '/' + target.get_child(0).get_text())
+    deactivate(origin)
     
 def up_dir_cb(event):
     global last_location
@@ -564,6 +577,50 @@ def open_rename_cb(event):
     cancel_button.add_event_cb(lambda e: lv.msgbox.close(rename_modal), lv.EVENT.CLICKED, None)
     #text_area.add_event_cb(lambda e: input_text_cb(e, text_area), lv.EVENT.VALUE_CHANGED, None)
 	
+    lv.group_focus_obj(text_area)       
+
+def response_upload_cb(event, file_path, description, msgbox):
+    desc = description.get_text()
+    lv.msgbox.close(msgbox)
+    
+    tokens = file_path.rpartition('/')
+    os.chdir(tokens[0])
+    
+    world.upload(tokens[2], desc)
+    
+    redraw(redrawable_area)
+    
+    
+    
+def open_upload_cb(event):
+    if selected_entity == '':
+        return
+    modal = lv.msgbox(origin)
+    modal.set_width(400)
+    #create_file_modal.add_flag(lv.obj.FLAG.FLOATING)
+    #create_file_modal.add_close_button()
+    affirm_button = modal.add_footer_button("Upload")
+    cancel_button = modal.add_footer_button("Cancel")
+    modal.add_title(f'Upload {selected_entity.rpartition('/')[2]} to Tulip World')
+    modal.center()
+    
+    text_area = lv.textarea(modal.get_content())
+    text_area.set_one_line(True)
+    text_area.align(lv.ALIGN.TOP_MID, 0, 10)
+    
+    text_area.add_style(field_style, 0)
+    text_area.add_style(field_style, lv.PART.CURSOR | lv.STATE.FOCUSED)
+    text_area.set_width(modal.get_width()-15)
+    text_area.set_placeholder_text("Say something about your file...")
+    first_line = open(selected_entity).readline().replace("\n","")
+    if '#' in first_line:
+        first_line = first_line.split('#')[-1]
+        text_area.set_text(first_line)
+	
+    affirm_button.add_event_cb(lambda e, n = selected_entity, d = text_area, m = modal: response_upload_cb(e, file_path = n, description = d, msgbox = m), lv.EVENT.CLICKED, None)
+    cancel_button.add_event_cb(lambda e: lv.msgbox.close(modal), lv.EVENT.CLICKED, None)
+    #text_area.add_event_cb(lambda e: input_text_cb(e, text_area), lv.EVENT.VALUE_CHANGED, None)
+	
     lv.group_focus_obj(text_area)
     
     
@@ -657,14 +714,15 @@ def redraw(area):
     bottom_row.set_style_pad_all(0, 0)
     bottom_row.set_flex_flow(lv.FLEX_FLOW.ROW)
     bottom_row.set_flex_align(lv.FLEX_ALIGN.SPACE_BETWEEN,lv.FLEX_ALIGN.SPACE_BETWEEN,lv.FLEX_ALIGN.SPACE_BETWEEN)
-
+    bottom_row.set_style_pad_column(10,0)
     button_wdt = 90
     
     new_folder_button = lv.button(bottom_row)
     folder_label = lv.label(new_folder_button)
     folder_label.set_text(lv.SYMBOL.PLUS + " " + lv.SYMBOL.DIRECTORY)
     folder_label.center()
-    new_folder_button.set_size(button_wdt, 40)
+    new_folder_button.set_height(40)
+    new_folder_button.set_flex_grow(1)
     new_folder_button.add_event_cb(open_create_dir_cb, lv.EVENT.CLICKED, None)
     new_folder_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
     
@@ -672,7 +730,8 @@ def redraw(area):
     file_label = lv.label(new_file_button)
     file_label.set_text(lv.SYMBOL.PLUS + " " + lv.SYMBOL.FILE)
     file_label.center()
-    new_file_button.set_size(button_wdt, 40)
+    new_file_button.set_height(40)
+    new_file_button.set_flex_grow(1)
     new_file_button.add_event_cb(open_create_file_cb, lv.EVENT.CLICKED, None)
     new_file_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
         
@@ -680,7 +739,8 @@ def redraw(area):
     app_label = lv.label(new_app_button)
     app_label.set_text(lv.SYMBOL.PLUS + " " + lv.SYMBOL.CHARGE)
     app_label.center()
-    new_app_button.set_size(button_wdt, 40)
+    new_app_button.set_height(40)
+    new_app_button.set_flex_grow(1)
     new_app_button.add_event_cb(open_create_app_cb, lv.EVENT.CLICKED, None)
     new_app_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
  
@@ -688,7 +748,8 @@ def redraw(area):
     rename_label = lv.label(rename_button)
     rename_label.set_text(lv.SYMBOL.SHUFFLE)
     rename_label.center()
-    rename_button.set_size(button_wdt, 40)
+    rename_button.set_height(40)
+    rename_button.set_flex_grow(1)
     rename_button.add_event_cb(open_rename_cb, lv.EVENT.CLICKED, None)
     rename_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
        
@@ -696,7 +757,8 @@ def redraw(area):
     remove_label = lv.label(remove_button)
     remove_label.set_text(lv.SYMBOL.TRASH)
     remove_label.center()
-    remove_button.set_size(button_wdt, 40)
+    remove_button.set_height(40)
+    remove_button.set_flex_grow(1)
     remove_button.add_event_cb(open_remove_cb, lv.EVENT.CLICKED, None)
     remove_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
         
@@ -704,7 +766,8 @@ def redraw(area):
     copy_label = lv.label(copy_button)
     copy_label.set_text(lv.SYMBOL.COPY)
     copy_label.center()
-    copy_button.set_size(button_wdt, 40)
+    copy_button.set_height(40)
+    copy_button.set_flex_grow(1)
     copy_button.add_event_cb(copy_cb, lv.EVENT.CLICKED, None)
     copy_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
     
@@ -712,7 +775,8 @@ def redraw(area):
     cut_label = lv.label(cut_button)
     cut_label.set_text(lv.SYMBOL.CUT)
     cut_label.center()
-    cut_button.set_size(button_wdt, 40)
+    cut_button.set_height(40)
+    cut_button.set_flex_grow(1)
     cut_button.add_event_cb(cut_cb, lv.EVENT.CLICKED, None)
     cut_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
     
@@ -720,7 +784,8 @@ def redraw(area):
     paste_label = lv.label(paste_button)
     paste_label.set_text(lv.SYMBOL.PASTE)
     paste_label.center()
-    paste_button.set_size(button_wdt, 40)
+    paste_button.set_height(40)
+    paste_button.set_flex_grow(1)
     paste_button.add_event_cb(paste_cb, lv.EVENT.CLICKED, None)
     paste_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
     
@@ -728,7 +793,8 @@ def redraw(area):
     edit_label = lv.label(edit_button)
     edit_label.set_text(lv.SYMBOL.EDIT)
     edit_label.center()
-    edit_button.set_size(button_wdt, 40)
+    edit_button.set_height(40)
+    edit_button.set_flex_grow(1)
     edit_button.add_event_cb(edit_cb, lv.EVENT.CLICKED, None)
     edit_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
  
@@ -736,9 +802,19 @@ def redraw(area):
     exec_label = lv.label(exec_button)
     exec_label.set_text(lv.SYMBOL.CHARGE)
     exec_label.center()
-    exec_button.set_size(button_wdt, 40)
+    exec_button.set_height(40)
+    exec_button.set_flex_grow(1)
     exec_button.add_event_cb(execute_cb, lv.EVENT.CLICKED, None)
     exec_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
+   
+    upload_button = lv.button(bottom_row)
+    upload_label = lv.label(upload_button)
+    upload_label.set_text(lv.SYMBOL.UPLOAD)
+    upload_label.center()
+    upload_button.set_height(40)
+    upload_button.set_flex_grow(1)
+    upload_button.add_event_cb(open_upload_cb, lv.EVENT.CLICKED, None)
+    upload_button.set_style_bg_color(lv.palette_darken(theme_color, 2), 0)
    
     
     

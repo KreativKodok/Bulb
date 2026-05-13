@@ -13,6 +13,7 @@ With it you can:
 - 📋 copy, ✂️ cut, and 📋 paste
 - ✏️ edit files in the default editor
 - ⚡ execute programs
+- 🔼 upload to Tulip World
 
 ## Try it!
 You can check it out in action on [Tulip Web](https://share.tulip.computer/xhIQ9W).
